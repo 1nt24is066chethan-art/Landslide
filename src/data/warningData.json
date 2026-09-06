@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "location": "Haflong",
+    "district": "Dima Hasao",
+    "state": "Assam",
+    "riskScore": 82,
+    "riskLevel": "HIGH",
+    "message": "Elevated landslide risk conditions detected.",
+    "status": "ACTIVE"
+  },
+  {
+    "id": 2,
+    "location": "Shillong",
+    "district": "East Khasi Hills",
+    "state": "Meghalaya",
+    "riskScore": 71,
+    "riskLevel": "HIGH",
+    "message": "High-risk environmental conditions require attention.",
+    "status": "ACTIVE"
+  },
+  {
+    "id": 3,
+    "location": "Tawang",
+    "district": "Tawang",
+    "state": "Arunachal Pradesh",
+    "riskScore": 76,
+    "riskLevel": "HIGH",
+    "message": "Elevated risk conditions detected in the monitored area.",
+    "status": "ACTIVE"
+  },
+  {
+    "id": 4,
+    "location": "Gangtok",
+    "district": "East Sikkim",
+    "state": "Sikkim",
+    "riskScore": 64,
+    "riskLevel": "MEDIUM",
+    "message": "Moderate risk conditions are being monitored.",
+    "status": "ACTIVE"
+  },
+  {
+    "id": 5,
+    "location": "Aizawl",
+    "district": "Aizawl",
+    "state": "Mizoram",
+    "riskScore": 58,
+    "riskLevel": "MEDIUM",
+    "message": "Moderate environmental risk requires continued monitoring.",
+    "status": "ACTIVE"
+  }
+]

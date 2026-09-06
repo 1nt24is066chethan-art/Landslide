@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "location": "Haflong",
+    "district": "Dima Hasao",
+    "state": "Assam",
+    "category": "Road Damage",
+    "description": "Cracks and minor debris observed along the roadside.",
+    "status": "REVIEWED"
+  },
+  {
+    "id": 2,
+    "location": "Shillong",
+    "district": "East Khasi Hills",
+    "state": "Meghalaya",
+    "category": "Slope Movement",
+    "description": "Small soil movement reported near a hillside settlement.",
+    "status": "PENDING"
+  },
+  {
+    "id": 3,
+    "location": "Tawang",
+    "district": "Tawang",
+    "state": "Arunachal Pradesh",
+    "category": "Rockfall",
+    "description": "Loose rocks reported near a mountain road.",
+    "status": "PENDING"
+  }
+]

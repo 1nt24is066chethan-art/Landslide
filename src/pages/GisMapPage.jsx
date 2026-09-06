@@ -1,6 +1,10 @@
+import { useState } from "react";
 import RiskMap from "../components/map/RiskMap";
+import DistrictInformationPanel from "../components/district/DistrictInformationPanel";
 
 export default function GisMapPage() {
+  const [selectedLocation, setSelectedLocation] = useState(null);
+
   return (
     <div className="space-y-6">
       <div>
@@ -14,8 +18,10 @@ export default function GisMapPage() {
       </div>
 
       <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
-        <RiskMap />
+        <RiskMap onLocationSelect={setSelectedLocation} />
       </div>
+
+      <DistrictInformationPanel location={selectedLocation} />
     </div>
   );
 }
