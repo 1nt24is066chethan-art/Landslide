@@ -64,18 +64,18 @@ function DistrictInformationPanel({ location }) {
 
       {/* Risk Score + Location */}
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <div
-          className={`rounded-lg border ${toneClasses.border} ${toneClasses.bg} p-4`}
-        >
-          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-            Risk Score
-          </p>
+        <div className="rounded-lg border border-slate-700 bg-slate-800/30 p-4">
+  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+    Risk Score
+  </p>
 
-          <RiskScoreIndicator
-            score={location.riskScore}
-            riskLevel={location.riskLevel}
-          />
-        </div>
+  <div className="mt-3 flex items-center justify-center">
+    <RiskScoreIndicator
+      score={location.riskScore}
+      riskLevel={location.riskLevel}
+    />
+  </div>
+</div>
 
         <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -132,17 +132,21 @@ function DistrictInformationPanel({ location }) {
         </h3>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <InfoItem
-            icon={Route}
-            label="Vulnerable Roads"
-            value={location.vulnerableRoads}
-          />
+          <InfrastructureItem
+  icon={Route}
+  label="Vulnerable Roads"
+  value={location.vulnerableRoads}
+  unit="roads"
+  tone="medium"
+/>
 
-          <InfoItem
-            icon={Home}
-            label="Vulnerable Villages"
-            value={location.vulnerableVillages}
-          />
+<InfrastructureItem
+  icon={Home}
+  label="Vulnerable Villages"
+  value={location.vulnerableVillages}
+  unit="villages"
+  tone="high"
+/>
         </div>
       </div>
     </div>
@@ -162,6 +166,39 @@ function InfoItem({ icon: Icon, label, value }) {
 
       <p className="mt-2 text-sm font-semibold text-slate-200">
         {value}
+      </p>
+    </div>
+  );
+}
+function InfrastructureItem({
+  icon: Icon,
+  label,
+  value,
+  unit,
+  tone,
+}) {
+  const toneClasses = getToneClasses(tone);
+
+  return (
+    <div
+      className={`rounded-lg border ${toneClasses.border} ${toneClasses.bg} p-4`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Icon className={`h-4 w-4 ${toneClasses.iconText}`} />
+
+          <p className="text-xs text-slate-400">
+            {label}
+          </p>
+        </div>
+
+        <span className={`text-2xl font-bold ${toneClasses.text}`}>
+          {value}
+        </span>
+      </div>
+
+      <p className="mt-2 text-xs text-slate-500">
+        {unit} identified in the simulated dataset
       </p>
     </div>
   );

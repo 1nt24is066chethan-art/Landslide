@@ -31,11 +31,33 @@ function createRiskIcon(riskLevel) {
   const color = colors[level] ?? "#38bdf8";
 
   return L.divIcon({
-  className: "risk-marker",
-  html: `<div style="width:20px;height:20px;border-radius:9999px;background:${color};border:3px solid white;box-shadow:0 0 0 3px ${color}55,0 2px 6px rgba(0,0,0,0.35);"></div>`,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-});
+    className: "risk-marker",
+    html: `<div style="width:20px;height:20px;border-radius:9999px;background:${color};border:3px solid white;box-shadow:0 0 0 3px ${color}55,0 2px 6px rgba(0,0,0,0.35);"></div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+}
+
+/*
+ * Automatically moves the map to the selected location.
+ *
+ * This is used when a place is selected from
+ * the "Check a Place" search feature.
+ */
+function MapLocationController({ location }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!location) {
+      return;
+    }
+
+    map.flyTo([location.lat, location.lon], 9, {
+      duration: 1.2,
+    });
+  }, [location, map]);
+
+  return null;
 }
 
 /*
@@ -242,7 +264,7 @@ function RiskPopup({ location, onClose }) {
   );
 }
 
-function RiskMap({ onLocationSelect }) {
+function RiskMap({ onLocationSelect, initialLocationId }) {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -288,39 +310,58 @@ function RiskMap({ onLocationSelect }) {
     loadIndiaGeoJson();
   }, []);
 
+  /*
+   * Select a location when it is passed from
+   * the Check a Place search feature.
+   */
+  useEffect(() => {
+    if (!initialLocationId || locations.length === 0) {
+      return;
+    }
+
+    const location = locations.find(
+      (item) => item.id === initialLocationId
+    );
+
+    if (!location) {
+      return;
+    }
+
+    setSelectedPopup(location);
+    onLocationSelect?.(location);
+  }, [initialLocationId, locations, onLocationSelect]);
+
   function handleLocationClick(location) {
     setSelectedPopup(location);
     onLocationSelect?.(location);
   }
 
+  useEffect(() => {
+    if (
+      selectedPopup &&
+      riskFilter !== "ALL" &&
+      selectedPopup.riskLevel?.toUpperCase() !== riskFilter
+    ) {
+      setSelectedPopup(null);
+      onLocationSelect?.(null);
+    }
+  }, [riskFilter, selectedPopup, onLocationSelect]);
+
   return (
     <div className="relative h-[650px] w-full overflow-hidden rounded-xl border border-slate-700">
-        <div className="absolute right-4 top-4 z-[1000] flex flex-wrap gap-2">
-  {["ALL", "HIGH", "MEDIUM", "LOW"].map((level) => (
-    <button
-      key={level}
-      type="button"
-      onClick={() => setRiskFilter(level)}
-      className={`rounded-lg border px-3 py-2 text-xs font-semibold shadow transition ${
-        riskFilter === level
-          ? "border-sky-400 bg-sky-500 text-white"
-          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
-      }`}
-    >
-      {level === "ALL" ? "ALL" : `${level} RISK`}
-    </button>
-  ))}
-</div>
       <MapContainer
-  center={NER_CENTER}
-  zoom={6}
-  minZoom={5}
-  maxZoom={10}
+        center={NER_CENTER}
+        zoom={6}
+        minZoom={5}
+        maxZoom={10}
         maxBounds={INDIA_BOUNDS}
         maxBoundsViscosity={1.0}
         scrollWheelZoom={true}
         className="h-full w-full"
       >
+        {/* Automatically fly to the selected/search location */}
+        <MapLocationController location={selectedPopup} />
+
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -339,25 +380,33 @@ function RiskMap({ onLocationSelect }) {
         )}
 
         {locations
-  .filter((location) => {
-    if (riskFilter === "ALL") return true;
-    return location.riskLevel?.toUpperCase() === riskFilter;
-  })
-  .map((location) => (
-    <Marker
-      key={location.id}
-      position={[location.lat, location.lon]}
-      icon={createRiskIcon(location.riskLevel)}
-      eventHandlers={{
-        click: () => handleLocationClick(location),
-      }}
-    />
-  ))}
+          .filter((location) => {
+            if (riskFilter === "ALL") {
+              return true;
+            }
+
+            return (
+              location.riskLevel?.toUpperCase() === riskFilter
+            );
+          })
+          .map((location) => (
+            <Marker
+              key={location.id}
+              position={[location.lat, location.lon]}
+              icon={createRiskIcon(location.riskLevel)}
+              eventHandlers={{
+                click: () => handleLocationClick(location),
+              }}
+            />
+          ))}
 
         {selectedPopup && (
           <RiskPopup
             location={selectedPopup}
-            onClose={() => setSelectedPopup(null)}
+            onClose={() => {
+              setSelectedPopup(null);
+              onLocationSelect?.(null);
+            }}
           />
         )}
       </MapContainer>
@@ -373,6 +422,33 @@ function RiskMap({ onLocationSelect }) {
           {error}
         </div>
       )}
+
+      <div className="absolute right-4 top-4 z-[1000] flex flex-wrap gap-2">
+        {["ALL", "HIGH", "MEDIUM", "LOW"].map((level) => {
+          const count =
+            level === "ALL"
+              ? locations.length
+              : locations.filter(
+                  (location) =>
+                    location.riskLevel?.toUpperCase() === level
+                ).length;
+
+          return (
+            <button
+              key={level}
+              type="button"
+              onClick={() => setRiskFilter(level)}
+              className={`rounded-lg border px-3 py-2 text-xs font-semibold shadow transition ${
+                riskFilter === level
+                  ? "border-sky-400 bg-sky-500 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              {level === "ALL" ? "ALL" : `${level} RISK`} {count}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="absolute bottom-4 right-4 z-[1000] rounded-lg border border-slate-200 bg-white p-3 shadow">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">

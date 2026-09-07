@@ -4,6 +4,7 @@ import AlertPanel from '../components/dashboard/AlertPanel'
 import MapPreview from '../components/dashboard/MapPreview'
 import AnalyticsPreview from '../components/dashboard/AnalyticsPreview'
 import QuickSummary from '../components/dashboard/QuickSummary'
+import PlaceSearch from "../components/search/PlaceSearch";
 
 /**
  * Dashboard Overview (Phase 2).
@@ -25,6 +26,7 @@ export default function DashboardPage() {
           Regional landslide risk monitoring and early warning summary
         </p>
       </div>
+      <PlaceSearch />
 
       <RiskSummary />
 

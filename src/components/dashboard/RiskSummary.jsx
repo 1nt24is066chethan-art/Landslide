@@ -1,12 +1,14 @@
-import { AlertTriangle, AlertCircle, ShieldCheck, Bell, ClipboardList } from 'lucide-react'
+import {
+  AlertTriangle,
+  AlertCircle,
+  ShieldCheck,
+  Bell,
+  ClipboardList,
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
 import RiskCard from './RiskCard'
 import { riskSummaryStats } from '../../data/dashboardData'
 
-/**
- * Row of five summary cards: High/Medium/Low risk location counts,
- * Active Warnings, and Citizen Reports. Reads from dashboardData.js
- * so no numbers are hardcoded here.
- */
 export default function RiskSummary() {
   const cards = [
     {
@@ -43,15 +45,30 @@ export default function RiskSummary() {
       value: riskSummaryStats.citizenReports,
       label: 'Submitted this session',
       tone: 'info',
+      link: '/citizen-reports',
     },
   ]
 
   return (
     <section aria-label="Risk summary">
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
-        {cards.map((card) => (
-          <RiskCard key={card.title} {...card} />
-        ))}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5 md:gap-4">
+        {cards.map((card) => {
+          const cardContent = <RiskCard key={card.title} {...card} />
+
+          if (card.link) {
+            return (
+              <Link
+                key={card.title}
+                to={card.link}
+                className="block rounded-xl transition hover:ring-2 hover:ring-sky-400/40"
+              >
+                {cardContent}
+              </Link>
+            )
+          }
+
+          return cardContent
+        })}
       </div>
     </section>
   )

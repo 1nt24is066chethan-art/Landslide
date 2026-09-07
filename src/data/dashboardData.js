@@ -1,10 +1,3 @@
-// Dummy data for the Dashboard Overview (Phase 2).
-//
-// This is intentionally simple, local, and hardcoded — it is NOT the final
-// data architecture. Phase 4 introduces src/data/dummyData.json plus
-// src/services/riskApi.js as the real data flow (ML/backend -> API -> UI).
-// Everything here is clearly prototype/simulated, never presented as live.
-
 import riskData from "./riskData.json";
 import warningData from "./warningData.json";
 import citizenReports from "./citizenReports.json";
