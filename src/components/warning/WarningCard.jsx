@@ -1,9 +1,10 @@
-import { AlertTriangle, MapPin } from "lucide-react";
+import { AlertTriangle, MapPin, BadgeCheck } from "lucide-react";
 import { getRiskLabel, getToneClasses } from "../../utils/riskUtils";
 
 function WarningCard({ warning }) {
   const tone = warning.riskLevel?.toLowerCase();
   const toneClasses = getToneClasses(tone);
+  const isAcknowledged = warning.status?.toUpperCase() === "ACKNOWLEDGED";
 
   return (
     <div
@@ -31,11 +32,22 @@ function WarningCard({ warning }) {
               </div>
             </div>
 
-            <span
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${toneClasses.badge}`}
-            >
-              {getRiskLabel(tone)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${toneClasses.badge}`}
+              >
+                {getRiskLabel(tone)}
+              </span>
+
+              {isAcknowledged && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[10px] font-semibold text-amber-300"
+                >
+                  <BadgeCheck className="h-3 w-3" />
+                  ACKNOWLEDGED
+                </span>
+              )}
+            </div>
           </div>
 
           <p className="mt-4 text-sm text-slate-400">

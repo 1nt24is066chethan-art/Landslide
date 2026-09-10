@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import L from "leaflet";
 import {
   GeoJSON,
@@ -9,7 +9,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { getRiskData } from "../../services/riskApi";
+import { getRiskData, getRiskLocationEnvironment, getVulnerableRoads, getVulnerableVillages } from "../../services/riskApi";
 import { getRiskLabel, getToneClasses } from "../../utils/riskUtils";
 
 const NER_CENTER = [25.8, 93.5];
@@ -66,7 +66,7 @@ function MapLocationController({ location }) {
  * We are intentionally not using Leaflet's Popup component.
  * This lets us keep the popup completely inside the visible map area.
  */
-function RiskPopup({ location, onClose }) {
+function RiskPopup({ location, environment, environmentLoading, environmentError, roadsLoading, roadsError, villagesLoading, villagesError, onClose }) {
   const map = useMap();
   const popupRef = useRef(null);
 
@@ -220,48 +220,122 @@ function RiskPopup({ location, onClose }) {
       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-200 pt-3 text-xs">
         <div>
           <p className="text-slate-500">Rainfall</p>
-          <p className="font-semibold text-slate-800">
-            {location.rainfall} mm
-          </p>
+          {environmentLoading ? (
+            <p className="font-semibold text-slate-800 animate-pulse">
+              <span className="inline-block w-12 h-4 bg-slate-200 rounded" />
+            </p>
+          ) : environmentError ? (
+            <p className="font-semibold text-red-500 text-xs">Unavailable</p>
+          ) : (
+            <p className="font-semibold text-slate-800">
+              {environment?.rainfallMm ?? location.rainfall} mm
+            </p>
+          )}
         </div>
 
         <div>
           <p className="text-slate-500">Soil Moisture</p>
-          <p className="font-semibold text-slate-800">
-            {location.soilMoisture}%
-          </p>
+          {environmentLoading ? (
+            <p className="font-semibold text-slate-800 animate-pulse">
+              <span className="inline-block w-12 h-4 bg-slate-200 rounded" />
+            </p>
+          ) : environmentError ? (
+            <p className="font-semibold text-red-500 text-xs">Unavailable</p>
+          ) : (
+            <p className="font-semibold text-slate-800">
+              {environment?.soilMoisturePercent ?? location.soilMoisture}%
+            </p>
+          )}
         </div>
 
         <div>
           <p className="text-slate-500">Slope</p>
-          <p className="font-semibold text-slate-800">
-            {location.slope}°
-          </p>
+          {environmentLoading ? (
+            <p className="font-semibold text-slate-800 animate-pulse">
+              <span className="inline-block w-12 h-4 bg-slate-200 rounded" />
+            </p>
+          ) : environmentError ? (
+            <p className="font-semibold text-red-500 text-xs">Unavailable</p>
+          ) : (
+            <p className="font-semibold text-slate-800">
+              {environment?.slopeDegrees ?? location.slope}°
+            </p>
+          )}
         </div>
 
         <div>
           <p className="text-slate-500">Temperature</p>
-          <p className="font-semibold text-slate-800">
-            {location.temperature}°C
-          </p>
+          {environmentLoading ? (
+            <p className="font-semibold text-slate-800 animate-pulse">
+              <span className="inline-block w-12 h-4 bg-slate-200 rounded" />
+            </p>
+          ) : environmentError ? (
+            <p className="font-semibold text-red-500 text-xs">Unavailable</p>
+          ) : (
+            <p className="font-semibold text-slate-800">
+              {environment?.temperatureCelsius ?? location.temperature}°C
+            </p>
+          )}
         </div>
 
         <div>
           <p className="text-slate-500">Vulnerable Roads</p>
-          <p className="font-semibold text-slate-800">
-            {location.vulnerableRoads}
-          </p>
+          {roadsLoading ? (
+            <p className="font-semibold text-slate-800 animate-pulse">
+              <span className="inline-block w-12 h-4 bg-slate-200 rounded" />
+            </p>
+          ) : roadsError ? (
+            <p className="font-semibold text-red-500 text-xs">Unavailable</p>
+          ) : (
+            <p className="font-semibold text-slate-800">
+              {location.vulnerableRoads}
+            </p>
+          )}
         </div>
 
         <div>
           <p className="text-slate-500">Vulnerable Villages</p>
-          <p className="font-semibold text-slate-800">
-            {location.vulnerableVillages}
-          </p>
+          {villagesLoading ? (
+            <p className="font-semibold text-slate-800 animate-pulse">
+              <span className="inline-block w-12 h-4 bg-slate-200 rounded" />
+            </p>
+          ) : villagesError ? (
+            <p className="font-semibold text-red-500 text-xs">Unavailable</p>
+          ) : (
+            <p className="font-semibold text-slate-800">
+              {location.vulnerableVillages}
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+function mergeEnvironmentData(location, environment) {
+  if (!environment) return location;
+
+  return {
+    ...location,
+    rainfall: environment.rainfallMm,
+    soilMoisture: environment.soilMoisturePercent,
+    slope: environment.slopeDegrees,
+    temperature: environment.temperatureCelsius,
+  };
+}
+
+function mergeInfrastructureData(location, roads, villages) {
+  // roads/villages = undefined: loading, null: error, array: loaded
+  const vulnerableRoads = roads === undefined ? undefined : roads === null ? null : roads.length;
+  const vulnerableVillages = villages === undefined ? undefined : villages === null ? null : villages.length;
+
+  return {
+    ...location,
+    vulnerableRoads,
+    vulnerableVillages,
+    vulnerableRoadDetails: roads === undefined || roads === null ? undefined : roads,
+    vulnerableVillageDetails: villages === undefined || villages === null ? undefined : villages,
+  };
 }
 
 function RiskMap({ onLocationSelect, initialLocationId }) {
@@ -271,6 +345,15 @@ function RiskMap({ onLocationSelect, initialLocationId }) {
   const [indiaGeoJson, setIndiaGeoJson] = useState(null);
   const [selectedPopup, setSelectedPopup] = useState(null);
   const [riskFilter, setRiskFilter] = useState("ALL");
+  const [environmentData, setEnvironmentData] = useState({});
+  const [environmentLoading, setEnvironmentLoading] = useState(null);
+  const [environmentError, setEnvironmentError] = useState(null);
+  const [roadsData, setRoadsData] = useState({});
+  const [roadsLoading, setRoadsLoading] = useState(null);
+  const [roadsError, setRoadsError] = useState(null);
+  const [villagesData, setVillagesData] = useState({});
+  const [villagesLoading, setVillagesLoading] = useState(null);
+  const [villagesError, setVillagesError] = useState(null);
 
   useEffect(() => {
     async function loadRiskData() {
@@ -328,12 +411,77 @@ function RiskMap({ onLocationSelect, initialLocationId }) {
     }
 
     setSelectedPopup(location);
-    onLocationSelect?.(location);
-  }, [initialLocationId, locations, onLocationSelect]);
+    fetchAllData(location.id);
+  }, [initialLocationId, locations]);
+
+  const fetchEnvironmentData = useCallback(async (locationId) => {
+    if (environmentData[locationId]) {
+      return;
+    }
+
+    setEnvironmentLoading(locationId);
+    setEnvironmentError(null);
+
+    try {
+      const data = await getRiskLocationEnvironment(locationId);
+      setEnvironmentData((prev) => ({ ...prev, [locationId]: data }));
+    } catch (err) {
+      console.error("Failed to load environment data:", err);
+      setEnvironmentError(err.message);
+    } finally {
+      setEnvironmentLoading(null);
+    }
+  }, [environmentData]);
+
+  const fetchRoadsData = useCallback(async (locationId) => {
+    if (roadsData[locationId] !== undefined) {
+      return;
+    }
+
+    setRoadsLoading(locationId);
+    setRoadsError(null);
+
+    try {
+      const data = await getVulnerableRoads(locationId);
+      setRoadsData((prev) => ({ ...prev, [locationId]: data }));
+    } catch (err) {
+      console.error("Failed to load vulnerable roads:", err);
+      setRoadsError(err.message);
+      setRoadsData((prev) => ({ ...prev, [locationId]: null }));
+    } finally {
+      setRoadsLoading(null);
+    }
+  }, [roadsData]);
+
+  const fetchVillagesData = useCallback(async (locationId) => {
+    if (villagesData[locationId] !== undefined) {
+      return;
+    }
+
+    setVillagesLoading(locationId);
+    setVillagesError(null);
+
+    try {
+      const data = await getVulnerableVillages(locationId);
+      setVillagesData((prev) => ({ ...prev, [locationId]: data }));
+    } catch (err) {
+      console.error("Failed to load vulnerable villages:", err);
+      setVillagesError(err.message);
+      setVillagesData((prev) => ({ ...prev, [locationId]: null }));
+    } finally {
+      setVillagesLoading(null);
+    }
+  }, [villagesData]);
+
+  const fetchAllData = useCallback(async (locationId) => {
+    fetchEnvironmentData(locationId);
+    fetchRoadsData(locationId);
+    fetchVillagesData(locationId);
+  }, [fetchEnvironmentData, fetchRoadsData, fetchVillagesData]);
 
   function handleLocationClick(location) {
     setSelectedPopup(location);
-    onLocationSelect?.(location);
+    fetchAllData(location.id);
   }
 
   useEffect(() => {
@@ -346,6 +494,40 @@ function RiskMap({ onLocationSelect, initialLocationId }) {
       onLocationSelect?.(null);
     }
   }, [riskFilter, selectedPopup, onLocationSelect]);
+
+  // Merge environment data into selected location for downstream consumers
+  const selectedLocationWithEnvironment = useMemo(() => {
+    if (!selectedPopup) return null;
+    const env = environmentData[selectedPopup.id];
+    return mergeEnvironmentData(selectedPopup, env);
+  }, [selectedPopup, environmentData]);
+
+  // Merge infrastructure data into selected location
+  const selectedLocationWithInfrastructure = useMemo(() => {
+    if (!selectedPopup) return null;
+    const env = environmentData[selectedPopup.id];
+    const roads = roadsData[selectedPopup.id];
+    const villages = villagesData[selectedPopup.id];
+    const withEnv = mergeEnvironmentData(selectedPopup, env);
+    return mergeInfrastructureData(withEnv, roads, villages);
+  }, [selectedPopup, environmentData, roadsData, villagesData]);
+
+  const currentEnvironment = selectedPopup ? environmentData[selectedPopup.id] : null;
+  const isEnvironmentLoading = environmentLoading === (selectedPopup?.id);
+  const currentEnvironmentError = isEnvironmentLoading ? environmentError : null;
+
+  const currentRoads = selectedPopup ? roadsData[selectedPopup.id] : null;
+  const isRoadsLoading = roadsLoading === (selectedPopup?.id);
+  const currentRoadsError = isRoadsLoading ? roadsError : null;
+
+  const currentVillages = selectedPopup ? villagesData[selectedPopup.id] : null;
+  const isVillagesLoading = villagesLoading === (selectedPopup?.id);
+  const currentVillagesError = isVillagesLoading ? villagesError : null;
+
+  // Notify parent of selected location with merged environment and infrastructure data
+  useEffect(() => {
+    onLocationSelect?.(selectedLocationWithInfrastructure);
+  }, [selectedLocationWithInfrastructure, onLocationSelect]);
 
   return (
     <div className="relative h-[650px] w-full overflow-hidden rounded-xl border border-slate-700">
@@ -403,6 +585,13 @@ function RiskMap({ onLocationSelect, initialLocationId }) {
         {selectedPopup && (
           <RiskPopup
             location={selectedPopup}
+            environment={currentEnvironment}
+            environmentLoading={isEnvironmentLoading}
+            environmentError={currentEnvironmentError}
+            roadsLoading={isRoadsLoading}
+            roadsError={currentRoadsError}
+            villagesLoading={isVillagesLoading}
+            villagesError={currentVillagesError}
             onClose={() => {
               setSelectedPopup(null);
               onLocationSelect?.(null);

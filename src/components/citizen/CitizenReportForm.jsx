@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Send, X } from "lucide-react";
+import { Send, X, AlertCircle } from "lucide-react";
 
-function CitizenReportForm({ onSubmit, onCancel }) {
+function CitizenReportForm({ onSubmit, onCancel, submitting, submitError }) {
   const [form, setForm] = useState({
     location: "",
     district: "",
@@ -33,7 +33,6 @@ function CitizenReportForm({ onSubmit, onCancel }) {
 
     onSubmit({
       ...form,
-      id: Date.now(),
       status: "PENDING",
     });
 
@@ -62,12 +61,22 @@ function CitizenReportForm({ onSubmit, onCancel }) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
+          disabled={submitting}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Close report form"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      {submitError && (
+        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+            <p className="text-sm text-red-300">{submitError}</p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -77,6 +86,7 @@ function CitizenReportForm({ onSubmit, onCancel }) {
             value={form.location}
             onChange={handleChange}
             placeholder="Example: Haflong"
+            disabled={submitting}
           />
 
           <FormField
@@ -85,6 +95,7 @@ function CitizenReportForm({ onSubmit, onCancel }) {
             value={form.district}
             onChange={handleChange}
             placeholder="Example: Dima Hasao"
+            disabled={submitting}
           />
 
           <FormField
@@ -93,6 +104,7 @@ function CitizenReportForm({ onSubmit, onCancel }) {
             value={form.state}
             onChange={handleChange}
             placeholder="Example: Assam"
+            disabled={submitting}
           />
 
           <div>
@@ -104,7 +116,8 @@ function CitizenReportForm({ onSubmit, onCancel }) {
               name="category"
               value={form.category}
               onChange={handleChange}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-sky-400"
+              disabled={submitting}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-sky-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option>Road Damage</option>
               <option>Slope Movement</option>
@@ -127,14 +140,15 @@ function CitizenReportForm({ onSubmit, onCancel }) {
             onChange={handleChange}
             rows={4}
             placeholder="Describe what you observed..."
-            className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-400"
+            disabled={submitting}
+            className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-400 disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
         <div className="rounded-lg border border-sky-400/20 bg-sky-400/5 p-3">
           <p className="text-xs leading-5 text-slate-400">
-            Prototype notice: submitted reports are stored only in the current
-            browser session. A backend database will be connected later.
+            Prototype notice: reports are submitted to the connected backend and
+            stored in the prototype database.
           </p>
         </div>
 
@@ -142,17 +156,47 @@ function CitizenReportForm({ onSubmit, onCancel }) {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-800"
+            disabled={submitting}
+            className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
 
           <button
             type="submit"
-            className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-400"
+            disabled={submitting}
+            className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Send className="h-4 w-4" />
-            Submit Report
+            {submitting ? (
+              <>
+                <svg
+                  className="animate-spin h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                Submit Report
+              </>
+            )}
           </button>
         </div>
       </form>
@@ -166,6 +210,7 @@ function FormField({
   value,
   onChange,
   placeholder,
+  disabled,
 }) {
   return (
     <div>
@@ -178,7 +223,8 @@ function FormField({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-400"
+        disabled={disabled}
+        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-400 disabled:opacity-50 disabled:cursor-not-allowed"
       />
     </div>
   );

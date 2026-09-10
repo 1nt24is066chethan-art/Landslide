@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -9,31 +9,68 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-import riskData from "../../data/riskData.json";
-import warningData from "../../data/warningData.json";
+import { searchRiskLocations } from "../../services/riskApi";
 import { getRiskLabel, getToneClasses } from "../../utils/riskUtils";
 
 function PlaceSearch() {
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showEmptyState, setShowEmptyState] = useState(false);
   const navigate = useNavigate();
+  const debounceRef = useRef(null);
 
-  const results = useMemo(() => {
-    const search = query.trim().toLowerCase();
-
-    if (!search) {
-      return [];
+  const handleSearch = useCallback(async (searchQuery) => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setResults([]);
+      setShowEmptyState(false);
+      return;
     }
 
-    return riskData.filter((location) => {
-      return [
-        location.location,
-        location.district,
-        location.state,
-      ].some((field) =>
-        field?.toLowerCase().includes(search)
-      );
-    });
-  }, [query]);
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await searchRiskLocations(trimmed);
+      setResults(data);
+      setShowEmptyState(data.length === 0);
+    } catch (err) {
+      setError(err.message);
+      setResults([]);
+      setShowEmptyState(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  function handleQueryChange(event) {
+    const value = event.target.value;
+    setQuery(value);
+    setError(null);
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    if (!value.trim()) {
+      setResults([]);
+      setShowEmptyState(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(() => {
+      handleSearch(value);
+    }, 300);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   return (
     <section className="rounded-xl border border-slate-700 bg-slate-900 p-5">
@@ -57,14 +94,32 @@ function PlaceSearch() {
         <input
           type="search"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={handleQueryChange}
           placeholder="Search place, district or state..."
           className="w-full rounded-lg border border-slate-700 bg-slate-800 py-3 pl-10 pr-4 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-sky-400"
         />
       </div>
 
+      {/* Loading */}
+      {loading && (
+        <div className="mt-4 space-y-3">
+          {[1, 2, 3].map((i) => (
+            <PlaceResultSkeleton key={i} />
+          ))}
+        </div>
+      )}
+
+      {/* Error */}
+      {error && !loading && (
+        <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-center">
+          <AlertTriangle className="mx-auto h-6 w-6 text-red-400" />
+          <p className="mt-2 text-sm text-red-300">Search failed</p>
+          <p className="mt-1 text-xs text-slate-400">{error}</p>
+        </div>
+      )}
+
       {/* Results */}
-      {query.trim() && (
+      {query.trim() && !loading && !error && (
         <div className="mt-4 space-y-3">
           {results.length === 0 ? (
             <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-6 text-center">
@@ -97,7 +152,7 @@ function PlaceSearch() {
       )}
 
       {/* Empty state before searching */}
-      {!query.trim() && (
+      {!query.trim() && !loading && !error && (
         <div className="mt-4 rounded-lg border border-dashed border-slate-700 bg-slate-800/20 p-5 text-center">
           <Search className="mx-auto h-6 w-6 text-slate-600" />
 
@@ -114,11 +169,11 @@ function PlaceResult({ location, onViewMap }) {
   const tone = location.riskLevel?.toLowerCase();
   const toneClasses = getToneClasses(tone);
 
-  const warning = warningData.find(
-    (item) =>
-      item.location?.toLowerCase() ===
-      location.location?.toLowerCase()
-  );
+  const warning = location.warningId ? {
+    id: location.warningId,
+    message: location.warningMessage,
+    status: location.warningStatus,
+  } : null;
 
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4">
@@ -159,30 +214,30 @@ function PlaceResult({ location, onViewMap }) {
         <Metric
           icon={CloudRain}
           label="Rainfall"
-          value={`${location.rainfall} mm`}
+          value={`${location.rainfallMm ?? location.rainfall} mm`}
         />
 
         <Metric
           icon={Droplets}
           label="Soil Moisture"
-          value={`${location.soilMoisture}%`}
+          value={`${location.soilMoisturePercent ?? location.soilMoisture}%`}
         />
 
         <Metric
           icon={MapPin}
           label="Slope"
-          value={`${location.slope}°`}
+          value={`${location.slopeDegrees ?? location.slope}°`}
         />
 
         <Metric
           icon={AlertTriangle}
           label="Warnings"
-          value={warning ? "Active" : "None"}
+          value={location.warning?.status === "ACTIVE" ? "Active" : location.warning?.status === "ACKNOWLEDGED" ? "Acknowledged" : "None"}
         />
       </div>
 
       {/* Warning */}
-      {warning && (
+      {location.warning && (
         <div
           className={`mt-4 rounded-lg border ${toneClasses.border} ${toneClasses.bg} p-3`}
         >
@@ -195,11 +250,13 @@ function PlaceResult({ location, onViewMap }) {
               <p
                 className={`text-xs font-semibold ${toneClasses.text}`}
               >
-                Active Warning
+                {location.warning.status === "ACTIVE" ? "Active Warning" :
+                 location.warning.status === "ACKNOWLEDGED" ? "Acknowledged Warning" :
+                 location.warning.status === "RESOLVED" ? "Resolved Warning" : "Warning"}
               </p>
 
               <p className="mt-1 text-xs leading-5 text-slate-400">
-                {warning.message}
+                {location.warning.message}
               </p>
             </div>
           </div>
@@ -239,6 +296,37 @@ function Metric({ icon: Icon, label, value }) {
       <p className="mt-1 text-sm font-semibold text-slate-200">
         {value}
       </p>
+    </div>
+  );
+}
+
+function PlaceResultSkeleton() {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4 animate-pulse">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div>
+          <div className="h-5 w-32 bg-slate-700 rounded" />
+          <div className="mt-2 h-3 w-40 bg-slate-700 rounded" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-20 bg-slate-700 rounded-full" />
+          <div className="h-6 w-16 bg-slate-700 rounded" />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
+            <div className="h-3 w-16 bg-slate-700 rounded" />
+            <div className="mt-1 h-4 w-20 bg-slate-700 rounded" />
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 h-16 bg-slate-700/30 rounded-lg" />
+      <div className="mt-4 flex justify-end">
+        <div className="h-8 w-24 bg-slate-700 rounded-lg" />
+      </div>
     </div>
   );
 }
