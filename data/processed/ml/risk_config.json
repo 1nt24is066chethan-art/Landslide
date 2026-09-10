@@ -1,0 +1,18 @@
+{
+  "risk_formula": "susceptibility_probability * rainfall_probability",
+  "thresholds": {
+    "low_max": 0.3331,
+    "medium_max": 0.5021
+  },
+  "levels": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  },
+  "validation": {
+    "risk_roc_auc": 0.8738,
+    "youden_threshold": 0.5021,
+    "true_positive_rate": 0.7219,
+    "false_positive_rate": 0.0878
+  }
+}
