@@ -1,7 +1,27 @@
+# Node / Vite
 node_modules
 dist
 dist-ssr
 *.local
-.DS_Store
 .vscode/*
 !.vscode/extensions.json
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Large raw OSM extract
+data/raw/osm/*.gpkg
+data/raw/osm/**/*.gpkg
+
+# Large raw rainfall archive
+data/archive/raw_rainfall/
+
+# Temporary/local files
+*.log
+*.numbers
