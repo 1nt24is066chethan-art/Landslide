@@ -31,6 +31,8 @@ import {
   getToneClasses,
 } from "../../utils/riskUtils";
 
+import HistoricalLandslideLayer from "./HistoricalLandslideLayer";
+
 
 const NER_CENTER = [25.8, 93.5];
 
@@ -902,6 +904,19 @@ function RiskMap({
     useState("ALL");
 
 
+  const [historicalVisible, setHistoricalVisible] =
+    useState(true);
+
+  const [historicalLoading, setHistoricalLoading] =
+    useState(false);
+
+  const [historicalError, setHistoricalError] =
+    useState("");
+
+  const [historicalCount, setHistoricalCount] =
+    useState(0);
+
+
   const [environmentData, setEnvironmentData] =
     useState({});
 
@@ -1612,6 +1627,14 @@ function RiskMap({
         )}
 
 
+        <HistoricalLandslideLayer
+          visible={historicalVisible}
+          onLoadingChange={setHistoricalLoading}
+          onErrorChange={setHistoricalError}
+          onCountChange={setHistoricalCount}
+        />
+
+
         {locations
           .filter((location) => {
             if (
@@ -1736,6 +1759,115 @@ function RiskMap({
           {error}
         </div>
       )}
+
+
+      <div className="
+        absolute
+        left-4
+        bottom-4
+        z-[1000]
+        rounded-lg
+        border
+        border-slate-200
+        bg-white
+        p-3
+        shadow
+      ">
+
+        <p className="
+          mb-2
+          text-xs
+          font-semibold
+          uppercase
+          tracking-wide
+          text-slate-600
+        ">
+          Map Layers
+        </p>
+
+        <button
+          type="button"
+          onClick={() =>
+            setHistoricalVisible(
+              (visible) => !visible
+            )
+          }
+          className="
+            flex
+            items-center
+            justify-between
+            gap-4
+            rounded-md
+            px-2
+            py-2
+            text-xs
+            font-semibold
+            text-slate-700
+            transition
+            hover:bg-slate-100
+          "
+        >
+
+          <span className="flex items-center gap-2">
+
+            <span className="
+              h-3
+              w-3
+              rounded-full
+              bg-violet-500
+            " />
+
+            Historical Landslides
+
+          </span>
+
+          <span className="
+            rounded-full
+            bg-slate-100
+            px-2
+            py-1
+            text-[10px]
+            font-semibold
+            text-slate-600
+          ">
+            {historicalVisible ? "ON" : "OFF"}
+          </span>
+
+        </button>
+
+        <p className="
+          mt-1
+          px-2
+          text-[10px]
+          text-slate-400
+        ">
+          {historicalCount.toLocaleString()} GSI records
+        </p>
+
+        {historicalLoading && (
+          <p className="
+            mt-1
+            px-2
+            text-[10px]
+            text-violet-600
+          ">
+            Loading...
+          </p>
+        )}
+
+        {historicalError && (
+          <p className="
+            mt-1
+            max-w-[180px]
+            px-2
+            text-[10px]
+            text-red-500
+          ">
+            {historicalError}
+          </p>
+        )}
+
+      </div>
 
 
       <div className="
