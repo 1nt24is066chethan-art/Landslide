@@ -1,9 +1,11 @@
+
 require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
 
 const locationsRoutes = require('./routes/locations.routes');
+const historicalLandslidesRoutes = require('./routes/historicalLandslides.routes');
 const riskRoutes = require('./routes/risk.routes');
 const warningsRoutes = require('./routes/warnings.routes');
 const citizenReportsRoutes = require('./routes/citizenReports.routes');
@@ -25,6 +27,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/risk-locations', locationsRoutes);
+app.use('/api/historical-landslides', historicalLandslidesRoutes);
 app.use('/api/risk', riskRoutes);
 app.use('/api/ml/predictions', require('./routes/mlPredictions.routes'));
 app.use('/api/warnings', warningsRoutes);

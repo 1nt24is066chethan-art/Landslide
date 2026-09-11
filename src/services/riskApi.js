@@ -129,6 +129,59 @@ export async function getVulnerableVillages(
 }
 
 /*
+ * Historical GSI landslide inventory.
+ *
+ * Returns real historical landslide records from
+ * the Supabase historical_landslides table.
+ *
+ * The backend paginates the response so the frontend
+ * can request a controlled number of records.
+ */
+export async function getHistoricalLandslides({
+  page = 1,
+  limit = 1000,
+  state,
+  district,
+} = {}) {
+  const params = new URLSearchParams();
+
+  params.set("page", page);
+  params.set("limit", limit);
+
+  if (state) {
+    params.set("state", state);
+  }
+
+  if (district) {
+    params.set("district", district);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/historical-landslides?${params.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch historical landslides: ${response.status}`
+    );
+  }
+
+  const result = await response.json();
+
+  if (
+    !result.success ||
+    !Array.isArray(result.data) ||
+    !result.pagination
+  ) {
+    throw new Error(
+      "Invalid historical landslides response from backend"
+    );
+  }
+
+  return result;
+}
+
+/*
  * Direct ML inference using explicitly supplied
  * 12-feature JSON.
  */
